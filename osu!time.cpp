@@ -7,27 +7,6 @@ using namespace std;
 HANDLE hProcess;
 DWORD PID;
 unsigned char aob[]= {0xA3,0x00,0x00,0x00,0x00,0x8B,0x35,0x00,0x00,0x00,0x00,0x85,0xF6},mask[]= {1,0,0,0,0,1,1,0,0,0,0,1,1};
-/*
-HANDLE OpenProcess(
-    DWORD      dwDesiredAccess, //希望获得的访问权限
-    BOOL       bInheritHandle, //指明是否希望所获得的句柄可以继承
-    DWORD      dwProcessId //要访问的进程ID
-);
-BOOL WriteProcessMemory(
-    HANDLE     hProcess,   //要写进程的句柄
-    LPVOID     lpBaseAddress,   //写内存的起始地址
-    LPVOID     lpBuffer,   //写入数据的地址
-    DWORD      nSize,   //要写的字节数
-    LPDWORD    lpNumberOfBytesWritten   //实际写入的子节数
-);
-BOOL ReadProcessMemory(
-    HANDLE     hProcess,   //要读进程的句柄
-    LPCVOID    lpBaseAddress,   //读内存的起始地址
-    LPVOID     lpBuffer,   //读入数据的地址
-    DWORD      nSize,   //要读入的字节数
-    LPDWORD    lpNumberOfBytesRead   //实际读入的子节数
-);
-*/
 DWORD getPID(LPCSTR ProcessName) {
 	HANDLE hProcessSnap;
 	PROCESSENTRY32 pe32;
@@ -52,7 +31,7 @@ DWORD getPID(LPCSTR ProcessName) {
 	CloseHandle(hProcessSnap);
 	return dwPid;
 }
-LPVOID AOB() {
+LPVOID AOB(LPVOID Startpoint) {
 	int len=sizeof(aob),pp=0;
 	unsigned int faddr=0;
 	unsigned char arBytes[2][4096],tmpByte[len*2+1];
@@ -65,6 +44,10 @@ LPVOID AOB() {
 			if(arBytes[0][i]*mask[pp]==aob[pp]*mask[pp]) {
 				if(pp==len-1) {
 					faddr=addr+i;
+					if(DWORD(Startpoint)>faddr-len+1){
+						i=i-pp;
+						pp=0;
+					}else
 					return LPVOID(faddr-len+1);
 				} else pp++;
 			} else {
@@ -76,6 +59,10 @@ LPVOID AOB() {
 			if(tmpByte[len+i]*mask[pp]==aob[pp]*mask[pp]) {
 				if(pp==len-1) {
 					faddr=addr+4096+i;
+					if(DWORD(Startpoint)>faddr-len+1){
+						i=i-pp;
+						pp=0;
+					}else
 					return LPVOID(faddr-len+1);
 				} else pp++;
 			} else {
@@ -93,8 +80,11 @@ int main() {
 		printf("Openning Failed\n");
 		system("pause");
 	}
-	LPVOID timeaddraddr=LPVOID((unsigned int)(AOB())+1),timeaddr=0;
-	ReadProcessMemory(hProcess,timeaddraddr,&timeaddr,4,NULL);
+	LPVOID timeaddraddr=0,timeaddr=0;
+	do{
+		timeaddraddr=LPVOID((unsigned int)(AOB(timeaddraddr))+1);
+		ReadProcessMemory(hProcess,timeaddraddr,&timeaddr,4,NULL);
+	}while(DWORD(timeaddr)<=0x00001000);
 	int time=0,hh,mm,ss,ms;
 	while(1) {
 		ReadProcessMemory(hProcess,timeaddr,&time,4,NULL);
