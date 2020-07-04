@@ -6,7 +6,9 @@
 using namespace std;
 HANDLE hProcess;
 DWORD PID;
-unsigned char aob[]= {0xA3,0x00,0x00,0x00,0x00,0x8B,0x35,0x00,0x00,0x00,0x00,0x85,0xF6},mask[]= {1,0,0,0,0,1,1,0,0,0,0,1,1};
+unsigned char aob[]={0x8B,0x76,0x10,0xDB,0x05,0x00,0x00,0x00,0x00,0xD9,0x5D,0xF8,0xD9,0x45,0xF8,0x6A},
+             mask[]={   1,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   1};
+int aoboff=5;
 DWORD getPID(LPCSTR ProcessName) {
 	HANDLE hProcessSnap;
 	PROCESSENTRY32 pe32;
@@ -82,7 +84,7 @@ int main() {
 	}
 	LPVOID timeaddraddr=0,timeaddr=0;
 	do{
-		timeaddraddr=LPVOID((unsigned int)(AOB(timeaddraddr))+1);
+		timeaddraddr=LPVOID((unsigned int)(AOB(timeaddraddr))+aoboff);
 		ReadProcessMemory(hProcess,timeaddraddr,&timeaddr,4,NULL);
 	}while(DWORD(timeaddr)<=0x00001000);
 	int time=0,hh,mm,ss,ms;
